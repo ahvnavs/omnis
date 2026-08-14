@@ -1,0 +1,19 @@
+{
+    "module": "transformation_engine",
+    "marts_generated": {
+        "fill_rate": {
+            "row_count": 83671,
+            "status": "success"
+        },
+        "freight_leakage": {
+            "row_count": 76889,
+            "status": "success"
+        },
+        "returns_leakage": {
+            "row_count": 48,
+            "status": "success"
+        }
+    },
+    "status": "completed",
+    "execution_time_seconds": 2.22
+}

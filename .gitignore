@@ -1,0 +1,27 @@
+# Virtual Environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Raw Databases & Large Data Files
+data/*.db
+data/*.sqlite
+data/*.duckdb
+data/*.parquet
+
+# Telemetry Data (Ignore full dumps, commit only reports and metadata)
+data/telemetry/02_raw/*.jsonl
+data/telemetry/03_clean/*.jsonl
+data/telemetry/04_marts/*.jsonl
+!data/telemetry/01_metadata.json
+!data/telemetry/02_extract_report.json
+!data/telemetry/03_clean_report.json
+!data/telemetry/04_transform_report.json
+!data/telemetry/05_load_manifest.json
+
+# Keep directories intact
+data/telemetry/02_raw/.keep
+data/telemetry/03_clean/.keep
+data/telemetry/04_marts/.keep

@@ -1,0 +1,109 @@
+{
+    "module": "sanitizer_engine",
+    "total_rows_dropped_system_wide": 100,
+    "table_metrics": {
+        "warehouses": {
+            "status": "success",
+            "initial_rows": 8,
+            "final_rows": 8,
+            "rows_dropped": 0,
+            "applied_fixes": [
+                "KP-2288: City Standardization"
+            ]
+        },
+        "routes": {
+            "status": "success",
+            "initial_rows": 140,
+            "final_rows": 140,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "regions": {
+            "status": "success",
+            "initial_rows": 5,
+            "final_rows": 5,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "inventory_snapshots": {
+            "status": "success",
+            "initial_rows": 131040,
+            "final_rows": 131040,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "order_lines": {
+            "status": "success",
+            "initial_rows": 511516,
+            "final_rows": 511516,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "orders": {
+            "status": "success",
+            "initial_rows": 83671,
+            "final_rows": 83671,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "promotions": {
+            "status": "success",
+            "initial_rows": 70,
+            "final_rows": 70,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "outlets": {
+            "status": "success",
+            "initial_rows": 724,
+            "final_rows": 624,
+            "rows_dropped": 100,
+            "applied_fixes": [
+                "Masked PII",
+                "KP-2377/2211: Exclusions & Deduplication",
+                "KP-2288: City Standardization"
+            ]
+        },
+        "salespeople": {
+            "status": "success",
+            "initial_rows": 95,
+            "final_rows": 95,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "product_price_history": {
+            "status": "success",
+            "initial_rows": 402,
+            "final_rows": 402,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        },
+        "returns_credit_notes": {
+            "status": "success",
+            "initial_rows": 14000,
+            "final_rows": 14000,
+            "rows_dropped": 0,
+            "applied_fixes": [
+                "KP-2402: Absolute Returns & dropped defects"
+            ]
+        },
+        "deliveries": {
+            "status": "success",
+            "initial_rows": 76889,
+            "final_rows": 76889,
+            "rows_dropped": 0,
+            "applied_fixes": [
+                "Masked PII",
+                "Dropped driver fuel_cost"
+            ]
+        },
+        "products": {
+            "status": "success",
+            "initial_rows": 341,
+            "final_rows": 341,
+            "rows_dropped": 0,
+            "applied_fixes": []
+        }
+    },
+    "execution_time": 3.786
+}

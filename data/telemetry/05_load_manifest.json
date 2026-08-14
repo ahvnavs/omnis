@@ -1,0 +1,23 @@
+{
+    "load_timestamp_utc": "2026-08-14T23:05:37.722727+00:00",
+    "marts": {
+        "fill_rate": {
+            "row_count": 83671,
+            "status": "READY",
+            "view_name": "v_fill_rate",
+            "parquet_file": "fill_rate.parquet"
+        },
+        "returns_leakage": {
+            "row_count": 48,
+            "status": "READY",
+            "view_name": "v_returns_leakage",
+            "parquet_file": "returns_leakage.parquet"
+        },
+        "freight_leakage": {
+            "row_count": 76889,
+            "status": "READY",
+            "view_name": "v_freight_leakage",
+            "parquet_file": "freight_leakage.parquet"
+        }
+    }
+}

@@ -1,0 +1,740 @@
+{
+    "Telemetry_Metadata": {
+        "module": "metadata_scanner",
+        "execution_time_seconds": 0.009
+    },
+    "System_Architecture": {
+        "Database_Name": "kestrel_ops.db"
+    },
+    "Tables_Entities": {
+        "regions": {
+            "Table_Row_Count": 5,
+            "Table_Column_Count": 7,
+            "Columns": {
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "region_code": {
+                    "Data_Type": "TEXT"
+                },
+                "region_name": {
+                    "Data_Type": "TEXT"
+                },
+                "regional_manager": {
+                    "Data_Type": "TEXT"
+                },
+                "hq_city": {
+                    "Data_Type": "TEXT"
+                },
+                "active_from": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "warehouses": {
+            "Table_Row_Count": 8,
+            "Table_Column_Count": 16,
+            "Columns": {
+                "warehouse_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "warehouse_code": {
+                    "Data_Type": "TEXT"
+                },
+                "warehouse_name": {
+                    "Data_Type": "TEXT"
+                },
+                "city": {
+                    "Data_Type": "TEXT"
+                },
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "address_line": {
+                    "Data_Type": "TEXT"
+                },
+                "pincode": {
+                    "Data_Type": "TEXT"
+                },
+                "capacity_pallets": {
+                    "Data_Type": "INTEGER"
+                },
+                "chilled_capacity_pallets": {
+                    "Data_Type": "INTEGER"
+                },
+                "dock_count": {
+                    "Data_Type": "INTEGER"
+                },
+                "opened_date": {
+                    "Data_Type": "TEXT"
+                },
+                "manager_name": {
+                    "Data_Type": "TEXT"
+                },
+                "shift_pattern": {
+                    "Data_Type": "TEXT"
+                },
+                "temp_monitoring": {
+                    "Data_Type": "TEXT"
+                },
+                "wms_version": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "routes": {
+            "Table_Row_Count": 140,
+            "Table_Column_Count": 15,
+            "Columns": {
+                "route_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "route_code": {
+                    "Data_Type": "TEXT"
+                },
+                "route_name": {
+                    "Data_Type": "TEXT"
+                },
+                "warehouse_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "planned_stops": {
+                    "Data_Type": "INTEGER"
+                },
+                "planned_km": {
+                    "Data_Type": "REAL"
+                },
+                "vehicle_type": {
+                    "Data_Type": "TEXT"
+                },
+                "is_reefer": {
+                    "Data_Type": "INTEGER"
+                },
+                "cost_per_km": {
+                    "Data_Type": "REAL"
+                },
+                "shift": {
+                    "Data_Type": "TEXT"
+                },
+                "service_frequency": {
+                    "Data_Type": "TEXT"
+                },
+                "active_from": {
+                    "Data_Type": "TEXT"
+                },
+                "active_to": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                },
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                }
+            }
+        },
+        "salespeople": {
+            "Table_Row_Count": 95,
+            "Table_Column_Count": 11,
+            "Columns": {
+                "salesperson_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "employee_code": {
+                    "Data_Type": "TEXT"
+                },
+                "full_name": {
+                    "Data_Type": "TEXT"
+                },
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "designation": {
+                    "Data_Type": "TEXT"
+                },
+                "date_of_joining": {
+                    "Data_Type": "TEXT"
+                },
+                "date_of_exit": {
+                    "Data_Type": "TEXT"
+                },
+                "target_monthly_inr": {
+                    "Data_Type": "REAL"
+                },
+                "incentive_band": {
+                    "Data_Type": "TEXT"
+                },
+                "reports_to": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "outlets": {
+            "Table_Row_Count": 724,
+            "Table_Column_Count": 31,
+            "Columns": {
+                "outlet_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "outlet_code": {
+                    "Data_Type": "TEXT"
+                },
+                "outlet_name": {
+                    "Data_Type": "TEXT"
+                },
+                "legal_name": {
+                    "Data_Type": "TEXT"
+                },
+                "channel": {
+                    "Data_Type": "TEXT"
+                },
+                "outlet_format": {
+                    "Data_Type": "TEXT"
+                },
+                "city": {
+                    "Data_Type": "TEXT"
+                },
+                "state": {
+                    "Data_Type": "TEXT"
+                },
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "pincode": {
+                    "Data_Type": "TEXT"
+                },
+                "latitude": {
+                    "Data_Type": "REAL"
+                },
+                "longitude": {
+                    "Data_Type": "REAL"
+                },
+                "route_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "salesperson_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "onboarded_date": {
+                    "Data_Type": "TEXT"
+                },
+                "credit_limit_inr": {
+                    "Data_Type": "REAL"
+                },
+                "credit_terms_days": {
+                    "Data_Type": "INTEGER"
+                },
+                "gst_number": {
+                    "Data_Type": "TEXT"
+                },
+                "storage_type": {
+                    "Data_Type": "TEXT"
+                },
+                "chiller_available": {
+                    "Data_Type": "INTEGER"
+                },
+                "avg_monthly_footfall": {
+                    "Data_Type": "INTEGER"
+                },
+                "contact_name": {
+                    "Data_Type": "TEXT"
+                },
+                "contact_phone": {
+                    "Data_Type": "TEXT"
+                },
+                "contact_email": {
+                    "Data_Type": "TEXT"
+                },
+                "last_audit_date": {
+                    "Data_Type": "TEXT"
+                },
+                "risk_flag": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                },
+                "closed_date": {
+                    "Data_Type": "TEXT"
+                },
+                "is_deleted": {
+                    "Data_Type": "INTEGER"
+                },
+                "created_at": {
+                    "Data_Type": "TEXT"
+                },
+                "updated_at": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "products": {
+            "Table_Row_Count": 341,
+            "Table_Column_Count": 26,
+            "Columns": {
+                "product_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "sku_code": {
+                    "Data_Type": "TEXT"
+                },
+                "product_name": {
+                    "Data_Type": "TEXT"
+                },
+                "brand": {
+                    "Data_Type": "TEXT"
+                },
+                "category": {
+                    "Data_Type": "TEXT"
+                },
+                "subcategory": {
+                    "Data_Type": "TEXT"
+                },
+                "pack_size_value": {
+                    "Data_Type": "REAL"
+                },
+                "pack_size_uom": {
+                    "Data_Type": "TEXT"
+                },
+                "case_pack": {
+                    "Data_Type": "INTEGER"
+                },
+                "mrp_inr": {
+                    "Data_Type": "REAL"
+                },
+                "list_price_inr": {
+                    "Data_Type": "REAL"
+                },
+                "gst_rate_pct": {
+                    "Data_Type": "REAL"
+                },
+                "hsn_code": {
+                    "Data_Type": "TEXT"
+                },
+                "shelf_life_days": {
+                    "Data_Type": "INTEGER"
+                },
+                "storage_temp_band": {
+                    "Data_Type": "TEXT"
+                },
+                "is_chilled": {
+                    "Data_Type": "INTEGER"
+                },
+                "abc_class": {
+                    "Data_Type": "TEXT"
+                },
+                "min_order_qty_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "unit_weight_grams": {
+                    "Data_Type": "REAL"
+                },
+                "barcode_ean13": {
+                    "Data_Type": "TEXT"
+                },
+                "launch_date": {
+                    "Data_Type": "TEXT"
+                },
+                "discontinued_date": {
+                    "Data_Type": "TEXT"
+                },
+                "supplier_name": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                },
+                "created_at": {
+                    "Data_Type": "TEXT"
+                },
+                "updated_at": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "product_price_history": {
+            "Table_Row_Count": 402,
+            "Table_Column_Count": 8,
+            "Columns": {
+                "price_history_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "product_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "effective_from": {
+                    "Data_Type": "TEXT"
+                },
+                "effective_to": {
+                    "Data_Type": "TEXT"
+                },
+                "mrp_inr": {
+                    "Data_Type": "REAL"
+                },
+                "list_price_inr": {
+                    "Data_Type": "REAL"
+                },
+                "change_reason": {
+                    "Data_Type": "TEXT"
+                },
+                "approved_by": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "promotions": {
+            "Table_Row_Count": 70,
+            "Table_Column_Count": 13,
+            "Columns": {
+                "promo_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "promo_code": {
+                    "Data_Type": "TEXT"
+                },
+                "promo_name": {
+                    "Data_Type": "TEXT"
+                },
+                "mechanic": {
+                    "Data_Type": "TEXT"
+                },
+                "discount_pct": {
+                    "Data_Type": "REAL"
+                },
+                "category_scope": {
+                    "Data_Type": "TEXT"
+                },
+                "channel_scope": {
+                    "Data_Type": "TEXT"
+                },
+                "region_scope": {
+                    "Data_Type": "INTEGER"
+                },
+                "start_date": {
+                    "Data_Type": "TEXT"
+                },
+                "end_date": {
+                    "Data_Type": "TEXT"
+                },
+                "budget_inr": {
+                    "Data_Type": "REAL"
+                },
+                "owner": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "orders": {
+            "Table_Row_Count": 83671,
+            "Table_Column_Count": 23,
+            "Columns": {
+                "order_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_number": {
+                    "Data_Type": "TEXT"
+                },
+                "outlet_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_date": {
+                    "Data_Type": "TEXT"
+                },
+                "requested_delivery_date": {
+                    "Data_Type": "TEXT"
+                },
+                "channel": {
+                    "Data_Type": "TEXT"
+                },
+                "region_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "route_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "warehouse_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "salesperson_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_status": {
+                    "Data_Type": "TEXT"
+                },
+                "line_count": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_value_gross_inr": {
+                    "Data_Type": "REAL"
+                },
+                "discount_amount_inr": {
+                    "Data_Type": "REAL"
+                },
+                "tax_amount_inr": {
+                    "Data_Type": "REAL"
+                },
+                "order_value_net_inr": {
+                    "Data_Type": "REAL"
+                },
+                "payment_terms_days": {
+                    "Data_Type": "INTEGER"
+                },
+                "promo_code": {
+                    "Data_Type": "TEXT"
+                },
+                "priority_flag": {
+                    "Data_Type": "INTEGER"
+                },
+                "credit_hold_flag": {
+                    "Data_Type": "INTEGER"
+                },
+                "cancelled_reason_code": {
+                    "Data_Type": "TEXT"
+                },
+                "source_system": {
+                    "Data_Type": "TEXT"
+                },
+                "created_at": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "order_lines": {
+            "Table_Row_Count": 511516,
+            "Table_Column_Count": 16,
+            "Columns": {
+                "order_line_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "line_number": {
+                    "Data_Type": "INTEGER"
+                },
+                "product_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "ordered_qty": {
+                    "Data_Type": "REAL"
+                },
+                "qty_uom": {
+                    "Data_Type": "TEXT"
+                },
+                "case_pack_at_order": {
+                    "Data_Type": "INTEGER"
+                },
+                "allocated_qty": {
+                    "Data_Type": "REAL"
+                },
+                "delivered_qty": {
+                    "Data_Type": "REAL"
+                },
+                "unit_price_inr": {
+                    "Data_Type": "REAL"
+                },
+                "line_discount_pct": {
+                    "Data_Type": "REAL"
+                },
+                "line_value_inr": {
+                    "Data_Type": "REAL"
+                },
+                "gst_rate_pct": {
+                    "Data_Type": "REAL"
+                },
+                "batch_id": {
+                    "Data_Type": "TEXT"
+                },
+                "substitution_flag": {
+                    "Data_Type": "INTEGER"
+                },
+                "short_reason_code": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "deliveries": {
+            "Table_Row_Count": 76889,
+            "Table_Column_Count": 21,
+            "Columns": {
+                "delivery_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "delivery_note_number": {
+                    "Data_Type": "TEXT"
+                },
+                "route_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "warehouse_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "vehicle_registration": {
+                    "Data_Type": "TEXT"
+                },
+                "driver_name": {
+                    "Data_Type": "TEXT"
+                },
+                "dispatch_datetime": {
+                    "Data_Type": "TEXT"
+                },
+                "planned_arrival": {
+                    "Data_Type": "TEXT"
+                },
+                "actual_arrival": {
+                    "Data_Type": "TEXT"
+                },
+                "telematics_vendor": {
+                    "Data_Type": "TEXT"
+                },
+                "delay_minutes": {
+                    "Data_Type": "INTEGER"
+                },
+                "distance_km": {
+                    "Data_Type": "REAL"
+                },
+                "delivery_status": {
+                    "Data_Type": "TEXT"
+                },
+                "pod_captured": {
+                    "Data_Type": "INTEGER"
+                },
+                "temperature_excursion_flag": {
+                    "Data_Type": "INTEGER"
+                },
+                "max_temp_celsius": {
+                    "Data_Type": "REAL"
+                },
+                "returned_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "failure_reason_code": {
+                    "Data_Type": "TEXT"
+                },
+                "fuel_cost_inr": {
+                    "Data_Type": "REAL"
+                },
+                "created_at": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        },
+        "inventory_snapshots": {
+            "Table_Row_Count": 131040,
+            "Table_Column_Count": 15,
+            "Columns": {
+                "snapshot_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "snapshot_date": {
+                    "Data_Type": "TEXT"
+                },
+                "warehouse_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "product_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "batch_id": {
+                    "Data_Type": "TEXT"
+                },
+                "on_hand_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "on_hand_eaches": {
+                    "Data_Type": "INTEGER"
+                },
+                "allocated_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "available_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "days_of_cover": {
+                    "Data_Type": "REAL"
+                },
+                "expiry_date": {
+                    "Data_Type": "TEXT"
+                },
+                "ageing_bucket": {
+                    "Data_Type": "TEXT"
+                },
+                "damaged_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "blocked_cases": {
+                    "Data_Type": "INTEGER"
+                },
+                "storage_temp_celsius": {
+                    "Data_Type": "REAL"
+                }
+            }
+        },
+        "returns_credit_notes": {
+            "Table_Row_Count": 14000,
+            "Table_Column_Count": 15,
+            "Columns": {
+                "return_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "credit_note_number": {
+                    "Data_Type": "TEXT"
+                },
+                "order_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "order_line_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "outlet_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "product_id": {
+                    "Data_Type": "INTEGER"
+                },
+                "return_date": {
+                    "Data_Type": "TEXT"
+                },
+                "return_qty": {
+                    "Data_Type": "REAL"
+                },
+                "qty_uom": {
+                    "Data_Type": "TEXT"
+                },
+                "return_reason_code": {
+                    "Data_Type": "TEXT"
+                },
+                "credit_note_value_inr": {
+                    "Data_Type": "REAL"
+                },
+                "approved_by": {
+                    "Data_Type": "TEXT"
+                },
+                "approval_date": {
+                    "Data_Type": "TEXT"
+                },
+                "disposition": {
+                    "Data_Type": "TEXT"
+                },
+                "status": {
+                    "Data_Type": "TEXT"
+                }
+            }
+        }
+    }
+}
