@@ -7,3 +7,5 @@ lxml
 html5lib
 fastapi
 uvicorn
+openai
+pandas
