@@ -3,84 +3,68 @@ import time
 import json
 from pathlib import Path
 
-PII_COLUMNS = ["contact_name", "contact_phone", "contact_email", "driver_name"]
-
-def run(raw_dir: str = "data/telemetry/02_raw", clean_dir: str = "data/telemetry/03_clean", report_path: str = "data/telemetry/03_clean_report.json"):
-    print("Initiating Sanitization Phase from JSONL...")
+def run(meta_dir: str, raw_dir: str, out_dir: str):
     t0 = time.time()
-    
-    clean_path = Path(clean_dir)
-    clean_path.mkdir(parents=True, exist_ok=True)
+    raw_path = Path(raw_dir)
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    report = {"module": "sanitization_engine", "actions_taken": []}
 
-    telemetry = {"module": "sanitizer_engine", "total_rows_dropped_system_wide": 0, "table_metrics": {}}
+    print("  -> Sanitizing Data & Salvaging Defects...")
 
-    for jsonl_file in Path(raw_dir).glob("*.jsonl"):
-        table_name = jsonl_file.stem
-        
+    def load_df(name):
+        f = raw_path / f"{name}.jsonl"
+        if not f.exists() or f.stat().st_size == 0:
+            return pl.DataFrame()
         try:
-            df = pl.read_ndjson(jsonl_file, infer_schema_length=None)
-            initial_rows = df.height
-            applied_fixes = []
+            return pl.read_ndjson(f, infer_schema_length=None)
+        except Exception:
+            return pl.DataFrame()
 
-            # MASK PII
-            for pii_col in PII_COLUMNS:
-                if pii_col in df.columns:
-                    df = df.with_columns(pl.lit("***MASKED***").alias(pii_col))
-                    if "Masked PII" not in applied_fixes: 
-                        applied_fixes.append("Masked PII")
+    # --- 1. CLEAN DB DATA ---
+    outlets = load_df("db_outlets")
+    if not outlets.is_empty():
+        mask_valid = (pl.col("is_deleted") == 0) & (pl.col("status").str.to_uppercase() != "CLOSED") & (~pl.col("outlet_name").str.to_lowercase().str.contains("test|migration"))
+        outlets.filter(mask_valid).unique("outlet_code", keep="first").write_ndjson(out_path / "clean_outlets.jsonl")
+        outlets.filter(~mask_valid).write_ndjson(out_path / "salvaged_outlets.jsonl")
+        report["actions_taken"].append("KP-2377/2211: Bad outlets partitioned to salvaged view.")
 
-            # OUTLETS
-            if table_name == "outlets":
-                if "is_deleted" in df.columns and "status" in df.columns:
-                    df = df.filter((pl.col("is_deleted") == 0) & (pl.col("status").cast(pl.String).str.to_uppercase() != "CLOSED"))
-                if "outlet_name" in df.columns:
-                    df = df.filter(~pl.col("outlet_name").cast(pl.String).str.to_lowercase().str.contains("test|migration"))
-                if "outlet_code" in df.columns and "onboarded_date" in df.columns:
-                    df = df.sort("onboarded_date", descending=True).unique(subset=["outlet_code"], keep="first")
-                applied_fixes.append("KP-2377/2211: Exclusions & Deduplication")
+    order_lines = load_df("db_order_lines")
+    if not order_lines.is_empty():
+        if "qty_uom" in order_lines.columns:
+            order_lines = order_lines.with_columns(
+                pl.when(pl.col("qty_uom").is_in(["G", "ML"])).then(pl.col("ordered_qty") / 1000)
+                .otherwise(pl.col("ordered_qty")).alias("ordered_qty_std")
+            )
+        order_lines.write_ndjson(out_path / "clean_order_lines.jsonl")
 
-            # RETURNS
-            elif table_name == "returns_credit_notes":
-                if "return_qty" in df.columns:
-                    df = df.with_columns(pl.col("return_qty").abs().alias("return_qty"))
-                if "approval_date" in df.columns:
-                    df = df.drop("approval_date")
-                applied_fixes.append("KP-2402: Absolute Returns & dropped defects")
+    returns = load_df("db_returns_credit_notes")
+    if not returns.is_empty():
+        if "return_qty" in returns.columns:
+            returns = returns.with_columns(pl.col("return_qty").abs())
+        returns.write_ndjson(out_path / "clean_returns.jsonl")
 
-            # DELIVERIES
-            elif table_name == "deliveries":
-                if "fuel_cost_inr" in df.columns:
-                    df = df.drop("fuel_cost_inr")
-                applied_fixes.append("Dropped driver fuel_cost")
+    for tbl in ["orders", "deliveries", "products", "warehouses", "routes", "regions", "salespeople", "promotions"]:
+        df = load_df(f"db_{tbl}")
+        if not df.is_empty(): df.write_ndjson(out_path / f"clean_{tbl}.jsonl")
 
-            # TEXT STANDARDIZATION
-            if "city" in df.columns:
-                df = df.with_columns(pl.col("city").cast(pl.String).str.strip_chars().str.to_titlecase().alias("city"))
-                applied_fixes.append("KP-2288: City Standardization")
+    # --- 2. CLEAN WEB DATA ---
+    web_data = load_df("web_competitor_prices")
+    if not web_data.is_empty():
+        web_data = web_data.with_columns(
+            pl.col("raw_text_block").str.extract(r"(?:₹|Rs\.?)\s*([\d\,\.]+)").str.replace(",","").cast(pl.Float64, strict=False).alias("clean_price_inr")
+        ).drop_nulls(subset=["clean_price_inr"])
+        web_data.write_ndjson(out_path / "clean_competitor_prices.jsonl")
+        report["actions_taken"].append("Web: Extracted pure INR float prices using Regex. Handled dirty cast errors gracefully.")
 
-            # SAVE
-            out_file = clean_path / f"{table_name}.jsonl"
-            if out_file.exists():
-                out_file.unlink()
-            df.write_ndjson(out_file)
+    # --- 3. CLEAN API DATA ---
+    for api_tbl in ["api_freight_invoices", "api_carriers", "api_fuel_surcharge", "api_shipment_events"]:
+        api_data = load_df(api_tbl)
+        if not api_data.is_empty():
+            if "amount_paise" in api_data.columns:
+                api_data = api_data.with_columns((pl.col("amount_paise") / 100).alias("amount_inr"))
+            api_data.write_ndjson(out_path / f"clean_{api_tbl}.jsonl")
 
-            final_rows = df.height
-            rows_dropped = initial_rows - final_rows
-            telemetry["total_rows_dropped_system_wide"] += rows_dropped
-            telemetry["table_metrics"][table_name] = {
-                "status": "success", "initial_rows": initial_rows, "final_rows": final_rows,
-                "rows_dropped": rows_dropped, "applied_fixes": applied_fixes
-            }
-            print(f"  -> Cleaned '{table_name}': Dropped {rows_dropped:,} rows.")
-
-        except Exception as e:
-            telemetry["table_metrics"][table_name] = {"status": "failed", "error": str(e)}
-            print(f"  -> FAILED cleaning '{table_name}': {e}")
-
-    telemetry["execution_time"] = round(time.time() - t0, 3)
-    rep_file = Path(report_path)
-    if rep_file.exists():
-        rep_file.unlink()
-
-    with open(rep_file, "w") as f:
-        json.dump(telemetry, f, indent=4)
+    with open(out_path / "03_clean_report.json", "w") as f:
+        json.dump(report, f, indent=4)
+    print(f"  -> Sanitization complete in {round(time.time()-t0, 2)}s")

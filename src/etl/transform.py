@@ -3,74 +3,44 @@ import time
 import json
 from pathlib import Path
 
-def run(clean_dir: str = "data/telemetry/03_clean", marts_dir: str = "data/telemetry/04_marts", report_path: str = "data/telemetry/04_transform_report.json"):
-    print("Initiating Business Logic Mart Transformation...")
+def run(clean_dir: str, out_dir: str):
     t0 = time.time()
-    
-    marts_path = Path(marts_dir)
-    marts_path.mkdir(parents=True, exist_ok=True)
+    in_path = Path(clean_dir)
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    report = {"module": "transformation_engine", "marts": []}
 
-    telemetry = {"module": "transformation_engine", "marts_generated": {}}
+    def load_df(name):
+        f = in_path / f"{name}.jsonl"
+        return pl.read_ndjson(f) if f.exists() else None
 
-    def load_clean_df(table_name: str):
-        f = Path(clean_dir) / f"{table_name}.jsonl"
-        return pl.read_ndjson(f, infer_schema_length=None) if f.exists() else None
+    print("  -> Generating Analytical Business Marts...")
 
-    order_lines = load_clean_df("order_lines")
-    deliveries = load_clean_df("deliveries")
-    returns = load_clean_df("returns_credit_notes")
-    products = load_clean_df("products")
+    orders = load_df("clean_orders")
+    order_lines = load_df("clean_order_lines")
+    deliveries = load_df("clean_deliveries")
+    invoices = load_df("clean_api_freight_invoices")
 
-    # Mart 1: Fill Rate
-    if order_lines is not None:
-        if "ordered_qty" in order_lines.columns and "delivered_qty" in order_lines.columns:
-            fill_rate_mart = order_lines.group_by("order_id").agg(
-                pl.col("ordered_qty").sum().alias("ordered_qty"),
-                pl.col("delivered_qty").sum().alias("delivered_qty")
-            ).with_columns(
-                (pl.col("delivered_qty") / pl.col("ordered_qty")).alias("fill_rate_pct")
-            )
-            out_file = marts_path / "fill_rate.jsonl"
-            if out_file.exists(): out_file.unlink()
-            fill_rate_mart.write_ndjson(out_file)
-            telemetry["marts_generated"]["fill_rate"] = {"row_count": fill_rate_mart.height, "status": "success"}
-            print("  -> Mart generated: fill_rate.jsonl")
+    # MART 1: True Financials (KP-2301)
+    if order_lines is not None and orders is not None:
+        truth_mart = order_lines.group_by("order_id").agg(
+            pl.col("line_value_inr").sum().alias("true_order_value_inr"),
+            pl.col("ordered_qty").sum().alias("total_eaches_ordered"),
+            pl.col("delivered_qty").sum().alias("total_eaches_delivered")
+        ).with_columns((pl.col("total_eaches_delivered") / pl.col("total_eaches_ordered")).alias("fill_rate_pct"))
+        
+        truth_mart = truth_mart.join(orders.select(["order_id", "outlet_id", "order_date", "salesperson_id"]), on="order_id", how="left")
+        truth_mart.write_ndjson(out_path / "mart_financial_and_service.jsonl")
+        report["marts"].append("mart_financial_and_service")
 
-    # Mart 2: Freight Leakage
-    if deliveries is not None:
-        freight_mart = deliveries.select([
-            c for c in ["delivery_id", "route_id", "vehicle_registration", "delivery_status", "delay_minutes"] 
-            if c in deliveries.columns
-        ])
-        out_file = marts_path / "freight_leakage.jsonl"
-        if out_file.exists(): out_file.unlink()
-        freight_mart.write_ndjson(out_file)
-        telemetry["marts_generated"]["freight_leakage"] = {"row_count": freight_mart.height, "status": "success"}
-        print("  -> Mart generated: freight_leakage.jsonl")
+    # MART 2: Freight Leakage
+    if deliveries is not None and invoices is not None and "delivery_id" in invoices.columns:
+        freight_mart = deliveries.join(invoices, on="delivery_id", how="inner").select([
+            "delivery_id", "route_id", "fuel_cost_inr", "amount_inr"
+        ]).with_columns((pl.col("amount_inr") - pl.col("fuel_cost_inr")).alias("freight_leakage_variance_inr"))
+        freight_mart.write_ndjson(out_path / "mart_freight_leakage.jsonl")
+        report["marts"].append("mart_freight_leakage")
 
-    # Mart 3: Returns Leakage
-    if returns is not None and products is not None:
-        if "product_id" in returns.columns and "credit_note_value_inr" in returns.columns:
-            returns_mart = returns.join(
-                products.select(["product_id", "category"]),
-                on="product_id",
-                how="left"
-            ).group_by(["category", "return_reason_code"]).agg(
-                pl.col("credit_note_value_inr").sum().alias("total_return_value_inr"),
-                pl.col("return_qty").sum().alias("total_return_qty")
-            )
-            out_file = marts_path / "returns_leakage.jsonl"
-            if out_file.exists(): out_file.unlink()
-            returns_mart.write_ndjson(out_file)
-            telemetry["marts_generated"]["returns_leakage"] = {"row_count": returns_mart.height, "status": "success"}
-            print("  -> Mart generated: returns_leakage.jsonl")
-
-    telemetry["status"] = "completed"
-    telemetry["execution_time_seconds"] = round(time.time() - t0, 3)
-    
-    rep_file = Path(report_path)
-    if rep_file.exists():
-        rep_file.unlink()
-
-    with open(rep_file, "w") as f:
-        json.dump(telemetry, f, indent=4)
+    with open(out_path / "04_transform_report.json", "w") as f:
+        json.dump(report, f, indent=4)
+    print(f"  -> Transformation complete in {round(time.time()-t0, 2)}s")

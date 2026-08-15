@@ -1,27 +1,70 @@
-# Virtual Environment
+# ==========================================
+# OMNIS SUPPLY CHAIN CONTROL TOWER: .gitignore
+# ==========================================
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sart/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
 .venv/
 venv/
-__pycache__/
-*.pyc
+ENV/
+env/
+
+# Environment Variables & Secrets
 .env
+.env.local
+.env.*.local
 
-# Raw Databases & Large Data Files
-data/*.db
-data/*.sqlite
-data/*.duckdb
-data/*.parquet
+# Databases, Telemetry, and Data Storage
+data/kestrel_ops.db
+data/telemetry/
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+*.parquet
+*.jsonl
 
-# Telemetry Data (Ignore full dumps, commit only reports and metadata)
-data/telemetry/02_raw/*.jsonl
-data/telemetry/03_clean/*.jsonl
-data/telemetry/04_marts/*.jsonl
-!data/telemetry/01_metadata.json
-!data/telemetry/02_extract_report.json
-!data/telemetry/03_clean_report.json
-!data/telemetry/04_transform_report.json
-!data/telemetry/05_load_manifest.json
+# Server Process IDs & Local Runtime Files
+.bazaar.pid
+.api.pid
+*.pid
+*.log
+logs/
+temp/
+tmp/
 
-# Keep directories intact
-data/telemetry/02_raw/.keep
-data/telemetry/03_clean/.keep
-data/telemetry/04_marts/.keep
+# IDEs, Text Editors, & OS Metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

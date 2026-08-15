@@ -1,3 +1,9 @@
 polars
 duckdb
 python-dotenv
+requests
+beautifulsoup4
+lxml
+html5lib
+fastapi
+uvicorn
