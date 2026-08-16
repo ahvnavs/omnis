@@ -1,0 +1,58 @@
+# ----------------------------------------------------------------------
+# Omnis Supply Chain Control Tower - Global GitIgnore
+# ----------------------------------------------------------------------
+
+# Python Environments & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# DuckDB & Databases
+05_warehouse/
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite3
+
+# Logs & Telemetry
+*.log
+data/telemetry/
+.pid_*
+
+# AI Agent Caches
+.ai_cache/
+
+# Scratch & Maintenance Scripts
+build_queries_*.py
+fix_*.py
+check_names.py
+
+# IDE & OS Artifacts
+.vscode/
+.idea/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,11 +1,12 @@
-polars
-duckdb
-python-dotenv
 requests
 beautifulsoup4
 lxml
-html5lib
+duckdb
+python-dotenv
 fastapi
 uvicorn
 openai
-pandas
+streamlit
+diskcache
+httpx
+psutil

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omnis — Supply Chain Control Tower</title>
+<meta name="description" content="Kestrel Provisions supply chain intelligence dashboard. Real-time KPIs, AI-powered analysis, and fleet performance metrics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:         #0b0c0f;
+  --surface:    #111318;
+  --surface2:   #191c24;
+  --border:     #1f2330;
+  --border2:    #2a2f42;
+  --text:       #e8eaf0;
+  --muted:      #5a6080;
+  --accent:     #4f8cff;
+  --accent2:    #7c5cfc;
+  --green:      #3ecf8e;
+  --red:        #f75f5f;
+  --amber:      #f5a623;
+  --font:       'Inter', system-ui, sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+#app{display:flex;height:100vh;width:100vw;overflow:hidden}
+#sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;z-index:10}
+#main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;height:100%}
+.page.active{display:flex;flex-direction:column}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.brand{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.brand-name{font-size:17px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text)}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.05em;margin-top:3px;text-transform:uppercase}
+.nav{flex:1;padding:12px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:400;transition:all .15s;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--text);border-left-color:var(--accent);background:rgba(79,140,255,.06)}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:.15s}
+.nav-item.active .nav-dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Page Headers ─────────────────────────────────────────────────── */
+.page-header{padding:20px 28px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.page-title{font-size:18px;font-weight:600;letter-spacing:.02em}
+.page-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+.page-body{flex:1;padding:20px 28px;overflow-y:auto;overflow-x:hidden}
+
+/* ── Cards & Grid ─────────────────────────────────────────────────── */
+.grid{display:grid;gap:16px}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1300px){.grid-3{grid-template-columns:repeat(2,1fr)}.grid-4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.grid-3,.grid-2,.grid-4{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-weight:500}
+.card-big{font-size:28px;font-weight:600;color:var(--text);line-height:1.1}
+.card-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;margin-top:8px}
+.badge.green{background:rgba(62,207,142,.12);color:var(--green)}
+.badge.red{background:rgba(247,95,95,.12);color:var(--red)}
+.badge.amber{background:rgba(245,166,35,.12);color:var(--amber)}
+.span-2{grid-column:span 2}
+.span-3{grid-column:span 3}
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--surface2)}
+.pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.pill-red{background:rgba(247,95,95,.15);color:var(--red)}
+.pill-amber{background:rgba(245,166,35,.15);color:var(--amber)}
+.pill-green{background:rgba(62,207,142,.15);color:var(--green)}
+
+/* ── Bar Charts ─────────────────────────────────────────────────── */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-label{width:120px;font-size:12px;color:var(--muted);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.bar-val{width:56px;font-size:12px;color:var(--text);flex-shrink:0;text-align:right}
+.bar-fill.accent{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.bar-fill.green{background:var(--green)}
+.bar-fill.red{background:var(--red)}
+.bar-fill.amber{background:var(--amber)}
+
+/* ── Progress bar (leaderboard) ─────────────────────────────────── */
+.progress-row{margin-bottom:12px}
+.progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.progress-name{font-size:13px;color:var(--text);font-weight:400}
+.progress-pct{font-size:12px;font-weight:500}
+.progress-track{width:100%;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .7s}
+.progress-target{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.35)}
+
+/* ── Sparkline ─────────────────────────────────────────────────── */
+.sparkline{width:100%;height:40px}
+.sparkline path{fill:none;stroke:var(--accent);stroke-width:1.5}
+.sparkline-area{fill:url(#spark-grad);stroke:none}
+
+/* ── Ticker/Exception Feed ─────────────────────────────────────── */
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.feed-item:last-child{border-bottom:none}
+.feed-icon{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.feed-icon.red{background:var(--red);box-shadow:0 0 5px var(--red)}
+.feed-icon.amber{background:var(--amber);box-shadow:0 0 5px var(--amber)}
+.feed-body{flex:1;min-width:0}
+.feed-type{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.feed-name{font-size:13px;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-detail{font-size:12px;color:var(--muted);margin-top:1px}
+
+/* ── Donut chart ─────────────────────────────────────────────────── */
+.donut-wrap{display:flex;align-items:center;gap:20px}
+.donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.donut-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.donut-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.donut-legend-val{margin-left:auto;font-weight:500;color:var(--text)}
+
+/* ── AI Chat Page ─────────────────────────────────────────────────── */
+#chat-messages{flex:1;overflow-y:auto;padding:20px 28px;display:flex;flex-direction:column;gap:16px}
+.msg{max-width:80%;display:flex;flex-direction:column;gap:4px}
+.msg-user{align-self:flex-end}
+.msg-ai{align-self:flex-start}
+.msg-bubble{padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.6}
+.msg-user .msg-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:2px}
+.msg-ai .msg-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:2px}
+.msg-meta{font-size:11px;color:var(--muted);padding:0 4px}
+.msg-user .msg-meta{text-align:right}
+#chat-input-area{padding:16px 28px;border-top:1px solid var(--border);display:flex;gap:12px;flex-shrink:0}
+#chat-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;resize:none;line-height:1.5;min-height:44px;max-height:120px}
+#chat-input:focus{border-color:var(--accent)}
+#chat-send{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s;flex-shrink:0}
+#chat-send:hover{background:#6a9fff}
+#chat-send:disabled{opacity:.4;cursor:default}
+.msg-ai .msg-bubble table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+.msg-ai .msg-bubble th{padding:5px 8px;text-align:left;color:var(--muted);border-bottom:1px solid var(--border)}
+.msg-ai .msg-bubble td{padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+.msg-ai .msg-bubble td:first-child{font-family:var(--mono)}
+
+/* ── Perf Page ─────────────────────────────────────────────────── */
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:var(--muted)}
+.stat-val{font-size:14px;font-weight:500;color:var(--text)}
+#log-feed{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;overflow-y:auto;max-height:380px;line-height:1.7}
+#log-feed .log-info{color:var(--muted)}
+#log-feed .log-warn{color:var(--amber)}
+#log-feed .log-error{color:var(--red)}
+
+/* ── Loading ─────────────────────────────────────────────────────── */
+.loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:24px 0}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── Sidebar ─────────────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="brand">
+    <div class="brand-name">Omnis</div>
+    <div class="brand-sub">Supply Chain Intelligence</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <div class="nav-dot"></div> Dashboard
+    </div>
+    <div class="nav-item" data-page="ai" onclick="navigate('ai')">
+      <div class="nav-dot"></div> Kestrel AI
+    </div>
+    <div class="nav-item" data-page="perf" onclick="navigate('perf')">
+      <div class="nav-dot"></div> Performance
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>Engine online
+  </div>
+</nav>
+
+<!-- ── Main ───────────────────────────────────────────────────── -->
+<div id="main">
+
+<!-- ═══════════ PAGE 1: DASHBOARD ═════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+  <div class="page-header">
+    <div class="page-title">Executive Dashboard</div>
+    <div class="page-subtitle" id="dash-updated">Loading data warehouse...</div>
+  </div>
+  <div class="page-body" id="dash-body">
+    <div class="loading"><div class="spinner"></div>Fetching pre-warmed data...</div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE 2: AI CHAT ════════════════════════════════════ -->
+<div id="page-ai" class="page">
+  <div class="page-header">
+    <div class="page-title">Kestrel AI</div>
+    <div class="page-subtitle">Ask questions about Kestrel Provisions supply chain data in plain English</div>
+  </div>
+  <div id="chat-messages">
+    <div class="msg msg-ai">
+      <div class="msg-bubble">System online. I have deep knowledge of Kestrel's supply chain — fill rates, OTIF, cold chain, freight, competitor pricing, and more. Ask me anything.</div>
+      <div class="msg-meta">Kestrel AI</div>
+    </div>
+  </div>
+  <div id="chat-input-area">
+    <textarea id="chat-input" rows="1" placeholder="Ask a supply chain question..."></textarea>
+    <button id="chat-send" onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE 3: PERFORMANCE ════════════════════════════════ -->
+<div id="page-perf" class="page">
+  <div class="page-header">
+    <div class="page-title">Performance</div>
+    <div class="page-subtitle">Agent observability — resource usage, query log, and system health</div>
+  </div>
+  <div class="page-body">
+    <div class="perf-grid">
+      <div class="card">
+        <div class="card-title">System Resources</div>
+        <div id="perf-stats"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Agent Process</div>
+        <div id="perf-proc"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title" style="display:flex;justify-content:space-between">
+        Agent Log
+        <span style="font-size:11px;color:var(--muted);cursor:pointer;text-transform:none;letter-spacing:0" onclick="loadPerf()">↻ Refresh</span>
+      </div>
+      <div id="log-feed">Loading...</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── Navigation ─────────────────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  document.getElementById(`page-${page}`).classList.add('active');
+  if (page === 'perf') loadPerf();
+}
+
+// ── Formatters ─────────────────────────────────────────────────────────
+const fmt = n => n === null || n === undefined ? '—' : Number(n).toLocaleString('en-IN');
+const fmtCr = n => n == null ? '—' : '₹' + (n/1e7).toFixed(2) + ' Cr';
+const fmtL  = n => n == null ? '—' : '₹' + (n/1e5).toFixed(1) + ' L';
+const pct = n => n == null ? '—' : n + '%';
+const clamp = (v,mn,mx) => Math.max(mn, Math.min(mx, v));
+
+// ── SVG Mini-Sparkline ──────────────────────────────────────────────────
+function sparklineSVG(data, key, color='var(--accent)', w=200, h=40) {
+  if (!data || !data.length) return '';
+  const vals = data.map(d => +d[key] || 0);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1 || 1)) * w;
+    const y = h - ((v - mn) / range) * (h - 4) - 2;
+    return `${x},${y}`;
+  });
+  const path = 'M' + pts.join(' L');
+  const area = path + ` L${w},${h} L0,${h} Z`;
+  return `<svg viewBox="0 0 ${w} ${h}" class="sparkline" preserveAspectRatio="none">
+    <defs><linearGradient id="sg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity=".3"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#sg)"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ── Horizontal bar chart ────────────────────────────────────────────────
+function hbarChart(rows, labelKey, valueKey, colorClass='accent', maxVal) {
+  if (!rows || !rows.length) return '<div class="empty">No data</div>';
+  const top = maxVal || Math.max(...rows.map(r => +r[valueKey] || 0));
+  return rows.map(r => {
+    const v = +r[valueKey] || 0;
+    const w = clamp((v / (top||1)) * 100, 0, 100);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${r[labelKey]}">${r[labelKey]}</div>
+      <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${w}%"></div></div>
+      <div class="bar-val">${fmt(v)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Donut chart SVG ─────────────────────────────────────────────────────
+const DONUT_COLORS = ['#4f8cff','#7c5cfc','#3ecf8e','#f5a623','#f75f5f','#00bcd4','#e91e63'];
+function donutChart(rows, labelKey, valueKey) {
+  if (!rows || !rows.length) return '<div class="empty">No data</div>';
+  const total = rows.reduce((s, r) => s + (+r[valueKey]||0), 0) || 1;
+  const R = 42, cx = 50, cy = 50, stroke = 14;
+  let cumAngle = -Math.PI / 2;
+  let segments = '';
+  const legend = rows.slice(0,6).map((r, i) => {
+    const v = +r[valueKey] || 0;
+    const angle = (v / total) * 2 * Math.PI;
+    const x1 = cx + R * Math.cos(cumAngle), y1 = cy + R * Math.sin(cumAngle);
+    cumAngle += angle;
+    const x2 = cx + R * Math.cos(cumAngle), y2 = cy + R * Math.sin(cumAngle);
+    const large = angle > Math.PI ? 1 : 0;
+    const color = DONUT_COLORS[i % DONUT_COLORS.length];
+    segments += `<path d="M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} Z" fill="${color}" opacity=".85"/>`;
+    return `<div class="donut-legend-row">
+      <div class="donut-legend-dot" style="background:${color}"></div>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${r[labelKey]}</span>
+      <span class="donut-legend-val">${fmtL(v)}</span>
+    </div>`;
+  }).join('');
+  const svg = `<svg viewBox="0 0 100 100" width="100" height="100" style="flex-shrink:0">${segments}
+    <circle cx="${cx}" cy="${cy}" r="${R - stroke}" fill="var(--surface)"/>
+  </svg>`;
+  return `<div class="donut-wrap">${svg}<div class="donut-legend">${legend}</div></div>`;
+}
+
+// ── Main Dashboard Renderer ─────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch('/api/dashboard');
+    const d = await res.json();
+    if (d.error) { document.getElementById('dash-body').innerHTML = `<div class="empty">${d.error}</div>`; return; }
+    document.getElementById('dash-updated').textContent = 'Data pre-loaded at engine startup · ' + new Date().toLocaleTimeString();
+    renderDashboard(d);
+  } catch(e) {
+    document.getElementById('dash-body').innerHTML = `<div class="empty">Failed to load dashboard. Is the engine running?</div>`;
+  }
+}
+
+function renderDashboard(d) {
+  const body = document.getElementById('dash-body');
+
+  // ── W1: Revenue ──
+  const rev = d.revenue_summary?.[0] || {};
+  const revMonths = d.revenue_by_month || [];
+  const momNum = rev.current_month_inr && rev.prev_month_inr
+    ? ((rev.current_month_inr - rev.prev_month_inr) / rev.prev_month_inr * 100).toFixed(1)
+    : null;
+  const momSign = momNum !== null ? (momNum >= 0 ? '+' : '') : '';
+  const momClass = momNum !== null ? (momNum >= 0 ? 'green' : 'red') : 'amber';
+
+  // ── W2: OTIF ──
+  const otif = (d.otif_by_region || []).filter(r => r.otif_pct != null);
+  const avgOtif = otif.length ? (otif.reduce((s,r) => s + (+r.otif_pct||0), 0) / otif.length).toFixed(1) : null;
+  const otifMaxPct = Math.max(...otif.map(r => +r.otif_pct || 0), 1);
+
+  // ── W3: Cold Chain ──
+  const ccVal = d.cold_chain_leakage?.[0]?.total_leakage_inr;
+  const ccMonths = d.cold_chain_by_month || [];
+
+  // ── W4: Leaderboard (Removed) ──
+  const leaders = d.sales_rep_leaderboard || [];
+
+  // ── W5: Bottom outlets ──
+  const botOutlets = (d.bottom_outlets_fill_rate || []).filter(r => r.fill_rate_pct != null);
+
+  // ── W6: Returns Pareto ──
+  const returns = (d.returns_pareto || []).filter(r => r.return_value_inr != null);
+  const returnsByCode = {};
+  returns.forEach(r => {
+    if (!returnsByCode[r.return_reason_code]) returnsByCode[r.return_reason_code] = 0;
+    returnsByCode[r.return_reason_code] += +r.return_value_inr || 0;
+  });
+  const paretoRows = Object.entries(returnsByCode).map(([code, val]) => ({return_reason_code:code, return_value_inr:val}))
+    .sort((a,b) => b.return_value_inr - a.return_value_inr).slice(0,8);
+  const paretoMax = paretoRows[0]?.return_value_inr || 1;
+
+  // ── W7: Dormant (Removed) ──
+  const dormant = d.dormant_accounts || [];
+
+  // ── W8: Freight (Removed) ──
+  const freight = d.freight_by_warehouse || [];
+  const freightMax = Math.max(...freight.map(r => +r.freight_per_case_inr||0), 1);
+
+  // ── W9: Carrier benchmark (Removed) ──
+  const carriers = d.carrier_benchmark || [];
+  const carrierMax = Math.max(...carriers.map(r => +r.avg_cost_per_km||0), 1);
+
+  // ── W10: Excursion ──
+  const excursion = (d.excursion_ratio_by_month || []).filter(r => r.pct != null);
+
+  // ── W11: Near-expiry ──
+  const nearExpiry = (d.near_expiry_by_warehouse || []).filter(r => r.at_risk_value_inr != null);
+
+  // ── W12: Discontinued ──
+  const disco = d.discontinued_orders || [];
+
+  // ── W13: Exceptions ──
+  const exceptions = d.exception_feed || [];
+  const lateRoutes = exceptions.filter(e => e.exception_type === 'LATE_ROUTE');
+  const lowFill    = exceptions.filter(e => e.exception_type === 'LOW_FILL');
+
+  // ── Build HTML ──
+  body.innerHTML = `
+  <div class="grid grid-3" style="grid-auto-rows: 320px;">
+    <!-- 1: Net Revenue -->
+    <div class="card">
+      <div class="card-title">True Net Revenue (Q1 Reconstructed)</div>
+      <div class="card-big">${fmtCr(rev.total_inr)}</div>
+      <div class="card-sub">Bypassing corrupted gross headers · sum of line values less returns</div>
+      ${momNum !== null ? `<span class="badge ${momClass}">${momSign}${momNum}% MoM</span>` : ''}
+      <div style="margin-top:12px">${sparklineSVG(revMonths,'revenue_inr')}</div>
+    </div>
+
+    <!-- 2: OTIF by Region -->
+    <div class="card">
+      <div class="card-title">OTIF by Region — Q1</div>
+      <div class="card-big" style="margin-bottom:14px">${avgOtif ? avgOtif + '%' : '—'} <span style="font-size:14px;color:var(--muted);font-weight:400">avg</span></div>
+      ${otif.map(r => `<div class="bar-row">
+        <div class="bar-label" title="${r.region_name}">${r.region_name || r.region_id}</div>
+        <div class="bar-track"><div class="bar-fill ${+r.otif_pct>=80?'green':+r.otif_pct>=60?'amber':'red'}" style="width:${clamp(+r.otif_pct,0,100)}%"></div></div>
+        <div class="bar-val">${pct(r.otif_pct)}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- 3: Cold Chain Leakage -->
+    <div class="card">
+      <div class="card-title">Cold Chain Financial Leakage</div>
+      <div class="card-big">${fmtCr(ccVal)}</div>
+      <div class="card-sub">Spoilage + Temperature Excursion returns only</div>
+      <span class="badge red">High Risk</span>
+      <div style="margin-top:12px">${sparklineSVG(ccMonths,'leakage_inr','var(--red)')}</div>
+    </div>
+
+    <!-- 4: Bottom Outlets -->
+    <div class="card">
+      <div class="card-title">Bottom 5 Outlets — Case Fill Rate</div>
+      <table class="tbl">
+        <thead><tr><th>Outlet</th><th>City</th><th>Fill %</th></tr></thead>
+        <tbody>
+        ${botOutlets.map(r => `<tr>
+          <td>${r.outlet_name}</td>
+          <td style="color:var(--muted)">${r.city||'—'}</td>
+          <td><span class="pill ${+r.fill_rate_pct<50?'pill-red':+r.fill_rate_pct<70?'pill-amber':'pill-green'}">${pct(r.fill_rate_pct)}</span></td>
+        </tr>`).join('') || '<tr><td colspan="3" class="empty">No data</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5: Returns Pareto -->
+    <div class="card">
+      <div class="card-title">Returns Value by Reason Code</div>
+      ${hbarChart(paretoRows, 'return_reason_code', 'return_value_inr', 'red', paretoMax)}
+    </div>
+
+    <!-- 6: Excursion Ratio -->
+    <div class="card">
+      <div class="card-title">Cold Chain Excursion Ratio — by Month</div>
+      ${sparklineSVG(excursion,'pct','var(--red)',300,60)}
+      <div style="margin-top:8px;display:flex;gap:16px">
+        ${excursion.slice(-3).map(r=>`<div style="font-size:12px;color:var(--muted)">M${r.mo}: <span style="color:${+r.pct>5?'var(--red)':'var(--green)'}">${r.pct}%</span></div>`).join('')}
+      </div>
+    </div>
+
+    <!-- 7: Near-Expiry -->
+    <div class="card">
+      <div class="card-title">Near-Expiry Perishable Valuation</div>
+      ${donutChart(nearExpiry,'warehouse_name','at_risk_value_inr')}
+    </div>
+
+    <!-- 8: Discontinued SKU Interceptor -->
+    <div class="card">
+      <div class="card-title">Discontinued SKU Order Interceptor</div>
+      ${disco.length === 0
+        ? '<div class="empty">No unauthorized orders detected</div>'
+        : `<div class="card-sub" style="margin-bottom:10px">${disco.length} unauthorized order lines detected</div>
+        <div style="flex:1;overflow-y:auto;min-height:0">
+        <table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Date</th></tr></thead>
+        <tbody>${disco.slice(0,12).map(r=>`<tr>
+          <td style="font-family:var(--mono);font-size:11px">${r.sku_code}</td>
+          <td style="font-size:12px">${r.product_name}</td>
+          <td><span class="pill pill-red" style="font-size:10px">${r.order_date?.slice?.(0,10)||r.order_date}</span></td>
+        </tr>`).join('')}
+        </tbody></table></div>`}
+    </div>
+
+    <!-- 9: Exception Feed -->
+    <div class="card">
+      <div class="card-title">Live Exception Feed</div>
+      <div style="flex:1;overflow-y:auto;min-height:0">
+      ${exceptions.length === 0 ? '<div class="empty">No active exceptions</div>' : ''}
+      ${lateRoutes.slice(0,4).map(e => `<div class="feed-item">
+        <div class="feed-icon red"></div>
+        <div class="feed-body">
+          <div class="feed-type">Late Route</div>
+          <div class="feed-name">${e.entity_name}</div>
+          <div class="feed-detail">${e.detail}</div>
+        </div>
+      </div>`).join('')}
+      ${lowFill.slice(0,4).map(e => `<div class="feed-item">
+        <div class="feed-icon amber"></div>
+        <div class="feed-body">
+          <div class="feed-type">Low Fill Rate</div>
+          <div class="feed-name">${e.entity_name}</div>
+          <div class="feed-detail">${e.detail}</div>
+        </div>
+      </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+// ── AI Chat ─────────────────────────────────────────────────────────────
+let chatBusy = false;
+
+function addMsg(role, content) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.innerHTML = `<div class="msg-bubble" id="bubble-${Date.now()}">${content}</div>
+    <div class="msg-meta">${role === 'user' ? 'You' : 'Kestrel AI'}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div.querySelector('.msg-bubble');
+}
+
+function tableHTML(data) {
+  if (!data || !data.length) return '';
+  const cols = Object.keys(data[0]);
+  return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${data.slice(0,20).map(r=>`<tr>${cols.map(c=>`<td>${r[c]??'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+async function sendChat() {
+  if (chatBusy) return;
+  const inp = document.getElementById('chat-input');
+  const q = inp.value.trim();
+  if (!q) return;
+  inp.value = '';
+  inp.style.height = '';
+  chatBusy = true;
+  document.getElementById('chat-send').disabled = true;
+
+  addMsg('user', q);
+  const t0 = Date.now();
+  const bubble = addMsg('ai', '<div class="loading"><div class="spinner"></div>Thinking...</div>');
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query: q, hide_thinking: true})
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let partial = '', answer = '', data = null;
+    bubble.innerHTML = '<div class="loading"><div class="spinner"></div>Processing...</div>';
+
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      const lines = (partial + decoder.decode(value, {stream:true})).split('\n');
+      partial = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.type === 'status') {
+            bubble.innerHTML = `<div style="color:var(--muted);font-size:12px">${ev.message}</div>`;
+          } else if (ev.type === 'token') {
+            answer += ev.content;
+            bubble.innerHTML = answer.replace(/\n/g,'<br>');
+          } else if (ev.type === 'cache') {
+            answer = ev.data.answer;
+            data = ev.data.data;
+            bubble.innerHTML = answer.replace(/\n/g,'<br>') + tableHTML(data);
+          } else if (ev.type === 'done') {
+            if (ev.data.data && ev.data.data.length) {
+              bubble.innerHTML += tableHTML(ev.data.data);
+            }
+            const ms = Date.now() - t0;
+            bubble.innerHTML += `<div style="margin-top:10px;font-size:11px;color:var(--muted)">${ev.data.source === 'preload' || ev.data.source === 'cache' ? 'cache' : 'live'} · ${ms}ms</div>`;
+          }
+        } catch(_) {}
+      }
+    }
+    if (!answer) bubble.innerHTML = '<span style="color:var(--muted)">No response.</span>';
+  } catch(e) {
+    bubble.innerHTML = `<span style="color:var(--red)">Connection error. Is the engine running?</span>`;
+  }
+
+  document.getElementById('chat-messages').scrollTop = 99999;
+  chatBusy = false;
+  document.getElementById('chat-send').disabled = false;
+}
+
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// ── Performance Page ─────────────────────────────────────────────────────
+async function loadPerf() {
+  try {
+    const res = await fetch('/api/perf');
+    const d = await res.json();
+    const s = d.system;
+    document.getElementById('perf-stats').innerHTML = `
+      <div class="stat-row"><span class="stat-label">CPU Usage</span><span class="stat-val">${s.cpu_pct}%</span></div>
+      <div class="stat-row"><span class="stat-label">Memory Used</span><span class="stat-val">${s.mem_used_mb} / ${s.mem_total_mb} MB (${s.mem_pct}%)</span></div>
+    `;
+    document.getElementById('perf-proc').innerHTML = `
+      <div class="stat-row"><span class="stat-label">API Process RAM</span><span class="stat-val">${s.process_mem_mb} MB</span></div>
+      <div class="stat-row"><span class="stat-label">Updated</span><span class="stat-val">${new Date(d.ts*1000).toLocaleTimeString()}</span></div>
+    `;
+    const colorLog = line => {
+      if (line.includes('WARNING')) return `<span class="log-warn">${line}</span>`;
+      if (line.includes('ERROR'))   return `<span class="log-error">${line}</span>`;
+      return `<span class="log-info">${line}</span>`;
+    };
+    document.getElementById('log-feed').innerHTML = d.log.split('\n').map(colorLog).join('\n');
+  } catch(e) {
+    document.getElementById('perf-stats').innerHTML = '<div class="empty">Failed to load metrics</div>';
+  }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+loadDashboard();
+setInterval(() => {
+  if (document.getElementById('page-dashboard').classList.contains('active')) {
+    loadDashboard();
+  }
+  if (document.getElementById('page-perf').classList.contains('active')) {
+    loadPerf();
+  }
+}, 10000);
+</script>
+</body>
+</html>
