@@ -542,8 +542,15 @@ function addMsg(role, content) {
 function tableHTML(data) {
   if (!data || !data.length) return '';
   const cols = Object.keys(data[0]);
-  return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${data.slice(0,20).map(r=>`<tr>${cols.map(c=>`<td>${r[c]??'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const maxRows = 50;
+  const rendered = data.slice(0, maxRows);
+  const remaining = data.length - rendered.length;
+  let html = `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rendered.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??'—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  if (remaining > 0) {
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Showing first ${maxRows} of ${data.length} rows</div>`;
+  }
+  return html;
 }
 
 async function sendChat() {

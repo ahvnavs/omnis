@@ -1,26 +1,16 @@
 import json
-import math
 import os
 import time
 from pathlib import Path
 
 import psutil
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.ai.orchestration import ask_agent_stream
-
-def _sanitize(obj):
-    """Recursively replace NaN/Inf floats with None for JSON safety."""
-    if isinstance(obj, float):
-        return None if (math.isnan(obj) or math.isinf(obj)) else obj
-    if isinstance(obj, dict):
-        return {k: _sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_sanitize(v) for v in obj]
-    return obj
 
 REPO_ROOT  = Path(__file__).resolve().parents[2]
 STATIC_DIR = REPO_ROOT / "src" / "web"
@@ -30,6 +20,15 @@ AGENT_LOG  = REPO_ROOT / "agent.log"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Omnis Control Tower", version="3.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/ui", StaticFiles(directory=str(STATIC_DIR)), name="ui")
 
 
@@ -56,8 +55,7 @@ def chat(request: ChatRequest):
 def api_dashboard():
     """Return pre-warmed dashboard JSON. Served from disk cache — instant."""
     if DASH_JSON.exists():
-        raw = json.loads(DASH_JSON.read_text())
-        return JSONResponse(content=_sanitize(raw))
+        return FileResponse(str(DASH_JSON), media_type="application/json")
     return JSONResponse(content={"error": "Dashboard cache not found. Run make engine."}, status_code=503)
 
 

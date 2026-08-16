@@ -5,6 +5,7 @@ Pulls every row from every source and writes raw JSONL files.
 Validates extracted counts against the metadata contract.
 """
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -20,7 +21,7 @@ from bs4 import BeautifulSoup
 # ── constants ────────────────────────────────────────────────────────────────
 WEB_BASE  = "http://localhost:8080"
 API_BASE  = "http://localhost:8088"
-API_KEY   = "kp_live_7f3a9c21"
+API_KEY   = os.environ.get("OMNIS_API_KEY", "kp_live_7f3a9c21")
 CRAWL_DELAY = 0          # Removed sleep for speed
 MAX_RETRIES = 7          # per-request attempts for API
 MAX_WORKERS = 25         # Optimal thread concurrency for stability and speed
@@ -113,10 +114,22 @@ def _parse_listing_page(html: str, city: str, page_url: str) -> list[dict]:
         })
     return listings
 
-def _fetch_and_parse_product(url: str, lid: str) -> dict:
-    session = requests.Session()
-    resp = session.get(url, timeout=10)
-    if resp.status_code != 200:
+def _fetch_and_parse_product(session: requests.Session, url: str, lid: str) -> dict:
+    attempt = 0
+    while attempt < MAX_RETRIES:
+        try:
+            resp = session.get(url, timeout=10)
+            if resp.status_code == 200:
+                break
+            if resp.status_code == 429:
+                time.sleep(int(resp.headers.get("Retry-After", 2)))
+                continue
+            attempt += 1
+            time.sleep(2 ** attempt)
+        except requests.RequestException:
+            attempt += 1
+            time.sleep(2 ** attempt)
+    else:
         return {}
         
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -150,6 +163,9 @@ def _extract_web(meta: dict, raw_dir: Path) -> dict:
         return {"listings": 0, "products": 0, "status": "skipped"}
 
     session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=MAX_WORKERS, pool_maxsize=MAX_WORKERS)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
     city_entry_points = {}
     for entry in sitemap_entries:
         m = re.match(r"^/city/([^/]+)/", entry.strip())
@@ -193,7 +209,7 @@ def _extract_web(meta: dict, raw_dir: Path) -> dict:
     all_products = []
     print(f"    Fetching {len(product_urls)} product pages concurrently...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = [executor.submit(_fetch_and_parse_product, url, lid) for lid, url in product_urls.items()]
+        futures = [executor.submit(_fetch_and_parse_product, session, url, lid) for lid, url in product_urls.items()]
         for idx, f in enumerate(concurrent.futures.as_completed(futures), 1):
             res = f.result()
             if res: all_products.append(res)
@@ -221,6 +237,9 @@ def _fetch_shipment_events(inv_id: str) -> list[dict]:
 def _extract_api(raw_dir: Path) -> dict:
     print("  → [extract] Partner API (Parallel) …")
     session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=MAX_WORKERS, pool_maxsize=MAX_WORKERS)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
     session.headers.update({"X-API-Key": API_KEY})
     report  = {}
 

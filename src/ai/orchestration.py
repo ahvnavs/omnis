@@ -41,11 +41,16 @@ logger = logging.getLogger("agent.core")
 # ── AI Client Setup ──────────────────────────────────────────────────────────
 client = OpenAI(
     base_url='http://localhost:11434/v1',
-    api_key='ollama', 
+    api_key=os.environ.get('OLLAMA_API_KEY', 'ollama'), 
 )
 MODEL_NAME = 'llama3.1'
 
-DB_PATH = LOG_DIR / "05_warehouse" / "omnis_warehouse.duckdb"
+# Candidate DuckDB warehouse locations
+POSSIBLE_DB_PATHS = [
+    REPO_ROOT / "data" / "telemetry" / "05_warehouse" / "omnis_warehouse.duckdb",
+    REPO_ROOT / "05_warehouse" / "omnis_warehouse.duckdb",
+]
+DB_PATH = next((p for p in POSSIBLE_DB_PATHS if p.exists()), POSSIBLE_DB_PATHS[0])
 PROMPT_PATH = Path(__file__).resolve().parent / "config.json"
 
 def get_system_prompt(schema: str) -> str:
@@ -66,11 +71,12 @@ def get_system_prompt(schema: str) -> str:
 
 def get_schema() -> str:
     """Introspect the DuckDB schema info."""
-    if not DB_PATH.exists():
-        logger.warning(f"Database not found at {DB_PATH}")
+    active_db = next((p for p in POSSIBLE_DB_PATHS if p.exists()), DB_PATH)
+    if not active_db.exists():
+        logger.warning(f"Database not found at {active_db}")
         return "Database not found."
     
-    con = duckdb.connect(str(DB_PATH), read_only=True)
+    con = duckdb.connect(str(active_db), read_only=True)
     try:
         # Exclude massive system tables and salvage tables to keep context prompt tight
         query = """
@@ -203,13 +209,28 @@ def ask_agent_stream(query: str, bypass_cache: bool = False, hide_thinking: bool
     
                 # Execute SQL
                 logger.info(f"Executing SQL Query:\n{sql_query}")
-                con = duckdb.connect(str(DB_PATH), read_only=True)
+                active_db = next((p for p in POSSIBLE_DB_PATHS if p.exists()), DB_PATH)
+                con = duckdb.connect(str(active_db), read_only=True)
                 try:
-                    df = con.execute(sql_query).fetchdf()
+                    # Clean and handle potential multiple SQL statements
+                    statements = [s.strip() for s in sql_query.split(";") if s.strip()]
+                    df = None
+                    for idx, stmt in enumerate(statements):
+                        if idx == len(statements) - 1 or stmt.upper().startswith("SELECT") or "SELECT" in stmt.upper():
+                            try:
+                                df = con.execute(stmt).fetchdf()
+                            except Exception as sub_err:
+                                if idx == len(statements) - 1:
+                                    raise sub_err
+                        else:
+                            con.execute(stmt)
+                    
+                    if df is None:
+                        df = con.execute(sql_query).fetchdf()
+
                     data = df.to_dict(orient="records")
                     columns = df.columns.tolist()
                     error = None
-                    con.close()
                     logger.info(f"SQL execution successful. {len(data)} rows returned.")
                     
                     # Check for 0 rows
@@ -220,7 +241,6 @@ def ask_agent_stream(query: str, bypass_cache: bool = False, hide_thinking: bool
                         yield f"data: {json.dumps({'type': 'status', 'message': f'Retrieved {len(data)} rows from warehouse. Synthesizing analysis...'})}\n\n"
                     break  # Success!
                 except Exception as e:
-                    con.close()
                     error = str(e)
                     logger.warning(f"SQL execution failed on attempt {attempt+1}: {error}")
                     yield f"data: {json.dumps({'type': 'status', 'message': f'Validation failed: self-correcting query (Attempt {attempt+1})...'})}\n\n"
@@ -230,6 +250,8 @@ def ask_agent_stream(query: str, bypass_cache: bool = False, hide_thinking: bool
                         "role": "user", 
                         "content": f"Your SQL query failed with this error:\n{error}\nPlease review the schema carefully, correct the SQL query, and output the updated JSON."
                     })
+                finally:
+                    con.close()
                     
             except Exception as e:
                 logger.error(f"LLM API Error: {e}")

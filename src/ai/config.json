@@ -5,12 +5,13 @@
     "Always use 'clean_' prefixed tables for raw normalized data, and 'mart_' prefixed tables for pre-aggregated analytics.",
     "DuckDB Date Syntax: Use `CURRENT_DATE - INTERVAL 1 MONTH` (NOT `DATEADD`). CRITICAL: Because this is a static mock dataset, for relative time filters like 'last month' or 'last quarter', ALWAYS use the maximum date in the table as your reference point instead of CURRENT_DATE. Example: `WHERE order_date >= (SELECT MAX(order_date) FROM mart_financial_service) - INTERVAL 1 MONTH`.",
     "METRIC - Fill Rate: Found in `mart_financial_service` as `fill_rate_cases` and `fill_rate_eaches`. Closed and Test outlets are ALREADY excluded from mart tables.",
-    "METRIC - OTIF (On-Time In-Full): Available pre-aggregated in `mart_q1_kpi`. Formula is `SUM(otif_orders) / SUM(total_orders) * 100`.",
+    "METRIC - OTIF (On-Time In-Full): Available pre-aggregated in `mart_q1_kpi`. Formula is `SUM(otif_orders) / SUM(total_orders) * 100`. Higher percentages indicate better delivery performance. Regions with higher OTIF rates are leaders, not laggards.",
     "METRIC - Returns & Leakage: Query `clean_db_returns_credit_notes` for general returns and reason codes. Query `mart_cold_chain_leakage` for temperature-related monetary losses. Cold chain reason codes are: RT06_COLD_CHAIN_BREACH and RT01_NEAR_EXPIRY.",
     "METRIC - Temperature Excursions: Found in `clean_db_deliveries` (`temperature_excursion_flag=True`). Join with `clean_db_products` to filter for chilled/frozen items.",
     "METRIC - Delivery Delays: Found in `clean_db_deliveries`. `delay_minutes > 120` means more than 2 hours late. Use window functions or grouping to calculate frequency rates per route.",
     "METRIC - Competitor Pricing: Found in `mart_competitor_pricing`. Compare `kestrel_mrp_inr` to `competitor_price_inr`. To rank 'top SKUs by value', join `clean_db_products` with `clean_db_order_lines` and group by SKU to sum `line_value_inr`.",
     "METRIC - Freight Costs: Found in `mart_freight_cost_per_case`. Freight costs are tracked per warehouse. Join with `mart_financial_service` to divide total freight by total delivered cases.",
-    "METRIC - Discontinued Sales: Cross-reference `clean_db_orders.order_date` against `clean_db_products.discontinuation_date` by joining through `clean_db_order_lines`."
+    "METRIC - Discontinued Sales: Cross-reference `clean_db_orders.order_date` against `clean_db_products.discontinuation_date` by joining through `clean_db_order_lines`.",
+    "MULTI-QUERY INSTRUCTION: If user asks multiple questions in one turn, combine the necessary SQL logic into a single cohesive query with CTEs (WITH clause) or UNION/JOIN, avoiding multiple disconnected statement blocks."
   ]
 }

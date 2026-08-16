@@ -9,6 +9,7 @@ dashboard loads instantly from disk. Also pre-warms the AI query cache with the
 import json
 import hashlib
 import logging
+import math
 import sys
 import time
 from pathlib import Path
@@ -33,6 +34,16 @@ logging.basicConfig(
 log = logging.getLogger("cache_seeder")
 
 # ── Helper ────────────────────────────────────────────────────────────────────
+def _sanitize(obj):
+    """Recursively replace NaN/Inf floats with None for JSON safety."""
+    if isinstance(obj, float):
+        return None if (math.isnan(obj) or math.isinf(obj)) else obj
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    return obj
+
 def run(con, sql):
     return con.execute(sql).fetchdf().to_dict(orient="records")
 
@@ -331,7 +342,7 @@ def main():
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
     log.info("── Dashboard Widgets ──────────────────────────────────")
-    results = seed_dashboard(con)
+    results = _sanitize(seed_dashboard(con))
     DASH_JSON.write_text(json.dumps(results, default=str, indent=2))
     log.info(f"  Dashboard JSON written → {DASH_JSON}")
 
