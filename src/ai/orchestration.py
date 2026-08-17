@@ -63,7 +63,18 @@ def get_system_prompt(schema: str) -> str:
             fmt = data.get("response_format", "")
             rules = "\n- ".join(data.get("logic_rules", []))
             
-            prompt = f"{identity}\n\n{fmt}\n\nBUSINESS LOGIC RULES:\n- {rules}\n\nDATABASE SCHEMA:\n{schema}"
+            reasoning_preamble = (
+                "CRITICAL REASONING STEPS (follow every time before writing SQL):\n"
+                "1. Read the user's question carefully. Identify WHAT metric/data they want.\n"
+                "2. Identify WHICH tables contain that data by scanning the DATABASE SCHEMA below.\n"
+                "3. For EACH column you plan to use, verify it appears in the schema for that table.\n"
+                "4. Plan your JOINs — ensure join keys exist on both sides.\n"
+                "5. Check for type compatibility (INTEGER vs DATE vs VARCHAR).\n"
+                "6. Write the simplest possible query that answers the question.\n"
+                "7. If unsure whether a column exists, do NOT guess. Use only confirmed columns."
+            )
+            
+            prompt = f"{identity}\n\n{fmt}\n\n{reasoning_preamble}\n\nBUSINESS LOGIC RULES:\n- {rules}\n\nDATABASE SCHEMA:\n{schema}"
             return prompt
     except Exception as e:
         logger.error(f"Failed to load config.json: {e}")
@@ -244,11 +255,21 @@ def ask_agent_stream(query: str, bypass_cache: bool = False, hide_thinking: bool
                     error = str(e)
                     logger.warning(f"SQL execution failed on attempt {attempt+1}: {error}")
                     yield f"data: {json.dumps({'type': 'status', 'message': f'Validation failed: self-correcting query (Attempt {attempt+1})...'})}\n\n"
-                    # Feed error back to the LLM to heal
+                    # Feed error back to the LLM to heal — be specific and directive
                     messages.append({"role": "assistant", "content": content})
                     messages.append({
                         "role": "user", 
-                        "content": f"Your SQL query failed with this error:\n{error}\nPlease review the schema carefully, correct the SQL query, and output the updated JSON."
+                        "content": (
+                            f"SQL EXECUTION ERROR:\n{error}\n\n"
+                            f"INSTRUCTIONS FOR CORRECTION:\n"
+                            f"1. Read the error message above carefully. It tells you the EXACT problem.\n"
+                            f"2. If it says a column does not exist, REMOVE that column entirely. Do NOT rename it to something else that might also not exist.\n"
+                            f"3. Re-check EVERY column and table reference against the DATABASE SCHEMA provided in the system prompt.\n"
+                            f"4. If types are incompatible (e.g., comparing INTEGER to TIMESTAMP), use explicit CAST() or appropriate extraction.\n"
+                            f"5. Do NOT repeat the same failing pattern. Write a fundamentally corrected query.\n"
+                            f"6. If the original approach is too complex, simplify — use fewer JOINs, fewer CTEs, and more direct table references.\n"
+                            f"7. Output the corrected SQL in a ```sql``` block."
+                        )
                     })
                 finally:
                     con.close()
@@ -273,12 +294,20 @@ def ask_agent_stream(query: str, bypass_cache: bool = False, hide_thinking: bool
     elif intent == "SQL" and not error:
         # Sample the data to prevent context window overflow
         data_sample = data[:50]
+        total_rows = len(data)
         summary_prompt = (
             f"User asked: '{query}'\n"
             f"SQL Query executed: {sql_query}\n"
-            f"SQL Results (first {len(data_sample)} rows): {json.dumps(data_sample, default=str)}\n\n"
-            "Synthesize a clear, analytical, conversational response answering the user's question using this exact data. "
-            "Highlight key insights. DO NOT output JSON. Output pure markdown text."
+            f"Total rows returned: {total_rows}\n"
+            f"Data (first {len(data_sample)} rows): {json.dumps(data_sample, default=str)}\n\n"
+            f"INSTRUCTIONS: Synthesize a clear, structured analytical response that directly answers the user's question.\n"
+            f"- Lead with the direct answer (the key number, ranking, or finding).\n"
+            f"- Highlight 2-3 key insights from the data (trends, outliers, comparisons).\n"
+            f"- Use specific numbers from the data — do not be vague.\n"
+            f"- If showing rankings or comparisons, present them in a readable list or brief table.\n"
+            f"- Keep the tone professional and concise — a supply chain manager is reading this.\n"
+            f"- DO NOT output SQL, JSON, or code. Output pure markdown text.\n"
+            f"- DO NOT explain how you got the data. Just present the findings."
         )
         
         try:
